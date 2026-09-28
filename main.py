@@ -4,6 +4,17 @@ import PyPDF2
 import docx2txt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
+
+load_dotenv()
+os.environ["HF_TOKEN"]=os.getenv("HF_TOKEN")
+
+model=SentenceTransformer("all-MiniLM-L6-v2")
+
+
+
+
 
 app=Flask(__name__)
 app.config['UPLOAD_FOLDER']='uploads/'
@@ -59,11 +70,10 @@ def matcher():
             return render_template('matchresume.html',message="Please upload resumes and enter job description")
 
 
-        vectorizer=TfidfVectorizer().fit_transform([jd] + resumes)
-        vectors=vectorizer.toarray()
-        jd_vector=vectors[0]
-        resumes_vectors=vectors[1:]
-        similarities=cosine_similarity([jd_vector],resumes_vectors)[0]
+        
+        jd_vector=model.encode([jd])
+        resumes_vectors=model.encode(resumes)
+        similarities=cosine_similarity(jd_vector,resumes_vectors)[0]
 
         top_indices=similarities.argsort()[-5:][::-1]
         top_resumes=[resume_files[i].filename for i in top_indices]
@@ -73,6 +83,38 @@ def matcher():
         return render_template('matchresume.html',message="Top matching resumes:",top_resumes=top_resumes, similarity_scores=score)
     
     return render_template('matchresume.html')
+
+# @app.route("/matcher",methods=['GET','POST'])
+# def matcher():
+#     if request.method=='POST':
+#         jd=request.form.get('job_description')
+#         resume_files=request.files.getlist('resumes')
+
+#         resumes=[]
+
+#         for resume_file in resume_files:
+#             filename=os.path.join(app.config["UPLOAD_FOLDER"],resume_file.filename)
+#             resume_file.save(filename)
+#             resumes.append(extract_txt(filename))
+
+#         if not resumes or not jd:
+#             return render_template('matchresume.html',message="Please upload resumes and enter job description")
+
+
+#         vectorizer=TfidfVectorizer().fit_transform([jd] + resumes)
+#         vectors=vectorizer.toarray()
+#         jd_vector=vectors[0]
+#         resumes_vectors=vectors[1:]
+#         similarities=cosine_similarity([jd_vector],resumes_vectors)[0]
+
+#         top_indices=similarities.argsort()[-5:][::-1]
+#         top_resumes=[resume_files[i].filename for i in top_indices]
+#         score=[round(similarities[i],2) for i in top_indices ]
+
+
+#         return render_template('matchresume.html',message="Top matching resumes:",top_resumes=top_resumes, similarity_scores=score)
+    
+#     return render_template('matchresume.html')
 
 # @app.route("/matcher", methods=["POST"])
 # def matcher1():
