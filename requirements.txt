@@ -4,4 +4,3 @@ scikit-learn
 pypdf2
 docx2txt
 sentence_transformers
-spacy
